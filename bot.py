@@ -35,7 +35,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Мы рады видеть тебя в нашем боте!\n\n"
         "**Главное меню**"
     )
-    photo_path = r"C:\Users\demid\Desktop\tgbot\botpng.jpg"  # полный путь с расширением и raw-строка для корректной обработки \
+    
+    photo_path = "botpng.jpg"
+
     
     await update.message.reply_photo(
         photo=open(photo_path, "rb"),
