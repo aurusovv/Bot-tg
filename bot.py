@@ -2,7 +2,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
-TOKEN_A = "8587360152:AAGAeoVhcFUMWHSXTuhifAH3VaujJVlhAaA"
+TOKEN_A = "!!"
 
 # Главное меню с кнопками
 def main_menu():
