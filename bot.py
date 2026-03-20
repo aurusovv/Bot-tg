@@ -1,10 +1,13 @@
 
 import re
-import httpx
+
 from datetime import datetime, timedelta
 from telegram import ChatPermissions
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters, Application
+from telegram.request import HTTPXRequest
+import httpx
+
 
 # Множество для отслеживания пользователей, чьи сообщения нужно переслать
 waiting_for_forward = set()
@@ -84,6 +87,67 @@ async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /settings."""
     await update.message.reply_text("Настройки пока в разработке.")
+
+# ЧЕК ПОДПИСКИ
+
+async def check_subscription_before_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Проверяет подписку перед отправкой сообщения админу"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    CHANNEL_ID = "@your_channel"  # Замените на ваш канал
+    CHANNEL_LINK = "https://t.me/your_channel"  # Замените на ссылку
+    
+    try:
+        member = await context.bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
+        
+        if member.status in ["member", "administrator", "creator"]:
+            # Подписан - даем доступ
+            await query.edit_message_text(
+                "✅ Вы подписаны на канал!\n\n"
+                "📨 Напишите ваше сообщение, и мы передадим его администратору."
+            )
+            # Здесь ваш код для пересылки сообщений
+        else:
+            # Не подписан - показываем кнопку подписки
+            keyboard = [
+                [InlineKeyboardButton("📢 Подписаться", url=CHANNEL_LINK)],
+                [InlineKeyboardButton("✅ Я подписался", callback_data="check_sub")]
+            ]
+            await query.edit_message_text(
+                "🔒 Для отправки сообщения администратору необходимо подписаться на канал:",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+    except Exception as e:
+        await query.edit_message_text("❌ Ошибка проверки подписки")
+
+async def check_subscription_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Проверка после нажатия 'Я подписался'"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    CHANNEL_ID = "@your_channel"
+    
+    try:
+        member = await context.bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
+        
+        if member.status in ["member", "administrator", "creator"]:
+            await query.edit_message_text(
+                "✅ Спасибо за подписку!\n\n"
+                "📨 Теперь напишите ваше сообщение для администратора."
+            )
+        else:
+            await query.edit_message_text(
+                "❌ Вы еще не подписались. Подпишитесь и нажмите кнопку снова.",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("📢 Подписаться", url="https://t.me/your_channel")
+                ]])
+            )
+    except:
+        await query.edit_message_text("❌ Ошибка")
+
 
 # КОМАНДЫ ЧАТА АДМИНОВ:
 
@@ -371,9 +435,8 @@ async def reply_to_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def run_bot():
     """Инициализирует и запускает бота."""
-    # Создаем объект Application
+    
     application = Application.builder().token(TOKEN).build()
-
     # команды только пользователю
     application.add_handler(CommandHandler("start", start, filters=filters.ChatType.PRIVATE))
     application.add_handler(CommandHandler("help", help_command, filters=filters.ChatType.PRIVATE))
@@ -390,6 +453,8 @@ def run_bot():
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.ALL & filters.ChatType.PRIVATE, forward_user_message))
     application.add_handler(MessageHandler(filters.ALL & filters.ChatType.GROUPS, reply_to_user))
+    application.add_handler(CallbackQueryHandler(check_subscription_before_support, pattern="admin"))
+    application.add_handler(CallbackQueryHandler(check_subscription_callback, pattern="check_sub"))
 
 
    
@@ -400,5 +465,3 @@ def run_bot():
     
 if __name__ == "__main__":
     run_bot()
-
-
