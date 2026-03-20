@@ -90,63 +90,33 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ЧЕК ПОДПИСКИ
 
-async def check_subscription_before_support(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Проверяет подписку перед отправкой сообщения админу"""
+async def check_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Проверка подписки на канал"""
     query = update.callback_query
     await query.answer()
     
     user_id = query.from_user.id
-    CHANNEL_ID = "@your_channel"  # Замените на ваш канал
-    CHANNEL_LINK = "https://t.me/your_channel"  # Замените на ссылку
+    CHANNEL_ID = "@your_channel"  # Замените
+    CHANNEL_LINK = "https://t.me/your_channel"  # Замените
     
     try:
         member = await context.bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
         
         if member.status in ["member", "administrator", "creator"]:
-            # Подписан - даем доступ
-            await query.edit_message_text(
-                "✅ Вы подписаны на канал!\n\n"
-                "📨 Напишите ваше сообщение, и мы передадим его администратору."
-            )
-            # Здесь ваш код для пересылки сообщений
+            await query.edit_message_text("✅ Вы подписаны!")
+            # Здесь ваша логика после подписки
         else:
-            # Не подписан - показываем кнопку подписки
-            keyboard = [
-                [InlineKeyboardButton("📢 Подписаться", url=CHANNEL_LINK)],
-                [InlineKeyboardButton("✅ Я подписался", callback_data="check_sub")]
-            ]
+            keyboard = [[InlineKeyboardButton("📢 Подписаться", url=CHANNEL_LINK)]]
             await query.edit_message_text(
-                "🔒 Для отправки сообщения администратору необходимо подписаться на канал:",
+                "❌ Подпишитесь на канал",
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
-    except Exception as e:
-        await query.edit_message_text("❌ Ошибка проверки подписки")
-
-async def check_subscription_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Проверка после нажатия 'Я подписался'"""
-    query = update.callback_query
-    await query.answer()
-    
-    user_id = query.from_user.id
-    CHANNEL_ID = "@your_channel"
-    
-    try:
-        member = await context.bot.get_chat_member(chat_id=CHANNEL_ID, user_id=user_id)
-        
-        if member.status in ["member", "administrator", "creator"]:
-            await query.edit_message_text(
-                "✅ Спасибо за подписку!\n\n"
-                "📨 Теперь напишите ваше сообщение для администратора."
-            )
-        else:
-            await query.edit_message_text(
-                "❌ Вы еще не подписались. Подпишитесь и нажмите кнопку снова.",
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("📢 Подписаться", url="https://t.me/your_channel")
-                ]])
-            )
     except:
-        await query.edit_message_text("❌ Ошибка")
+        keyboard = [[InlineKeyboardButton("📢 Подписаться", url=CHANNEL_LINK)]]
+        await query.edit_message_text(
+            "❌ Ошибка. Подпишитесь на канал",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
 
 # КОМАНДЫ ЧАТА АДМИНОВ:
@@ -453,8 +423,7 @@ def run_bot():
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.ALL & filters.ChatType.PRIVATE, forward_user_message))
     application.add_handler(MessageHandler(filters.ALL & filters.ChatType.GROUPS, reply_to_user))
-    application.add_handler(CallbackQueryHandler(check_subscription_before_support, pattern="admin"))
-    application.add_handler(CallbackQueryHandler(check_subscription_callback, pattern="check_sub"))
+
 
 
    
